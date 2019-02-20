@@ -23,6 +23,7 @@ module Bundler
     def inject_from_definition_validation!(definition)
       builder = injection_builder nil, definition
       inject!(builder)
+      update_definition(definition, builder)
     end
     module_function :inject_from_definition_validation!
 
@@ -63,6 +64,55 @@ module Bundler
     end
     module_function :injection_builder
     private_class_method :injection_builder
+
+    def update_definition(definition, builder)
+      lockfile = definition.lockfile
+      unlock   = definition.instance_variable_get(:@unlock)
+
+      new_definition = builder.to_definition(lockfile, unlock)
+
+      # Copy definition vars to old definition
+      #
+      # Yes, this is a bit of a hack, but there is no better way (I can think
+      # of) to trasfer the vars back to the definition we had passed in.
+
+      copy_var definition, new_definition, :@unlocking_bundler
+      copy_var definition, new_definition, :@unlocking
+      copy_var definition, new_definition, :@unlock
+      copy_var definition, new_definition, :@depenencies
+      copy_var definition, new_definition, :@sources
+      copy_var definition, new_definition, :@optional_groups
+      copy_var definition, new_definition, :@remote
+      copy_var definition, new_definition, :@specs
+      copy_var definition, new_definition, :@ruby_version
+      copy_var definition, new_definition, :@gemfiles
+      copy_var definition, new_definition, :@lockfile
+      copy_var definition, new_definition, :@lockfile_contents
+      copy_var definition, new_definition, :@locked_bundler_version
+      copy_var definition, new_definition, :@locked_ruby_version
+      copy_var definition, new_definition, :@locked_specs_incomplete_for_platform
+      copy_var definition, new_definition, :@lockfile_contents
+      copy_var definition, new_definition, :@locked_platforms
+      copy_var definition, new_definition, :@locked_deps
+      copy_var definition, new_definition, :@locked_specs
+      copy_var definition, new_definition, :@locked_sources
+      copy_var definition, new_definition, :@platforms
+      copy_var definition, new_definition, :@new_platform
+      copy_var definition, new_definition, :@path_changes
+      copy_var definition, new_definition, :@source_changes
+      copy_var definition, new_definition, :@dependency_changes
+      copy_var definition, new_definition, :@local_changes
+      copy_var definition, new_definition, :@requires
+    end
+    module_function :update_definition
+    private_class_method :update_definition
+
+    def copy_var(definition, builder_definition, var)
+      value = builder_definition.instance_variable_get(var)
+      definition.instance_variable_set(var, value)
+    end
+    module_function :copy_var
+    private_class_method :copy_var
 
     def load_bundler_d(builder, dir)
       Dir.glob(File.join(dir, '*.rb')).sort.each do |f|
